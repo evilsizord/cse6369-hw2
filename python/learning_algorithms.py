@@ -32,7 +32,12 @@ class ACTrainer:
             self.update_actor_net()
             # TODO: Calculate avg reward for this rollout
             # HINT: Add all the rewards from each trajectory. There should be "ntr" trajectories within a single rollout.
-            avg_ro_reward = ???
+            #avg_ro_reward = ???
+            avg_ro_reward = 0
+            for t in range(len(self.trajectory['reward'])):
+                avg_ro_reward = avg_ro_reward + np.sum(r for r in self.trajectory['reward'][t])
+            avg_ro_reward = avg_ro_reward / self.params['n_trajectory_per_rollout']
+
             print(f'End of rollout {ro_idx}: Average trajectory reward is {avg_ro_reward: 0.2f}')
             # Append average rollout reward into a list
             list_ro_reward.append(avg_ro_reward)
@@ -57,9 +62,20 @@ class ACTrainer:
     def update_target_value(self, gamma=0.99):
         # TODO: Update target values
         # HINT: Use definition of target-estimate from equation 7 of teh assignment PDF
-
-        self.trajectory['state_value'] = ???
-        self.trajectory['target_value'] = ???
+        target_values = list()
+        state_values = list()
+        for k in range(self.params['n_trajectory_per_rollout']):
+            for t in range(len(self.trajectory['reward'][k]) - 1):
+                r_kt = self.trajectory['reward'][k][t]
+                y_hat = self.critic_net(self.trajectory['obs'][k][t])
+                y_hat_next_state = self.critic_net( self.trajectory['obs'][k][t+1])
+                target_values.append( r_kt + (gamma * y_hat_next_state) )
+                state_values.append(y_hat)
+                
+        self.trajectory['target_value'] = target_values
+        self.trajectory['state_value'] = state_values
+        #self.trajectory['state_value'] = ???
+        #self.trajectory['target_value'] = ???
 
     def estimate_advantage(self, gamma=0.99):
         # TODO: Estimate advantage
@@ -114,7 +130,7 @@ class ActorNet(nn.Module):
         return action_index, log_prob
 
 
-# CLass for actor-net
+# CLass for critic-net
 class CriticNet(nn.Module):
     def __init__(self, input_size, output_size, hidden_dim):
         super(CriticNet, self).__init__()
