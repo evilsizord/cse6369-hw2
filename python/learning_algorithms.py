@@ -144,7 +144,11 @@ class ActorNet(nn.Module):
         super(ActorNet, self).__init__()
         # TODO: Define the actor net
         # HINT: You can use nn.Sequential to set up a 2 layer feedforward neural network.
-        self.ff_net = nn.Sequential(nn.Linear(input_size, hidden_dim), nn.Linear(hidden_dim, output_size))
+        self.ff_net = nn.Sequential(
+            nn.Linear(input_size, hidden_dim), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_size),
+            nn.Sigmoid())
 
     def forward(self, obs):
         # TODO: Forward pass of actor net
@@ -162,7 +166,11 @@ class CriticNet(nn.Module):
         super(CriticNet, self).__init__()
         # TODO: Define the critic net
         # HINT: You can use nn.Sequential to set up a 2 layer feedforward neural network.
-        self.ff_net = nn.Sequential(nn.Linear(input_size, hidden_dim), nn.Linear(hidden_dim, output_size))
+        self.ff_net = nn.Sequential(
+            nn.Linear(input_size, hidden_dim), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_size),
+            nn.Sigmoid())
 
     def forward(self, obs):
         # TODO: Forward pass of critic net
@@ -315,7 +323,12 @@ class QNet(nn.Module):
     # This is identical to policy network from HW1
     def __init__(self, input_size, output_size, hidden_dim):
         super(QNet, self).__init__()
-        self.ff_net = ???
+        #self.ff_net = ???
+        self.ff_net = nn.Sequential(
+            nn.Linear(input_size, hidden_dim), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_size),
+            nn.Sigmoid())
 
     def forward(self, obs):
         return self.ff_net(obs)
