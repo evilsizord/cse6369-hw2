@@ -71,7 +71,7 @@ class ACTrainer:
                 y_hat_next_state = self.critic_net( self.trajectory['obs'][k][t+1])
                 target_values.append( r_kt + (gamma * y_hat_next_state) )
                 state_values.append(y_hat)
-                
+
         self.trajectory['target_value'] = target_values
         self.trajectory['state_value'] = state_values
         #self.trajectory['state_value'] = ???
@@ -80,8 +80,16 @@ class ACTrainer:
     def estimate_advantage(self, gamma=0.99):
         # TODO: Estimate advantage
         # HINT: Use definition of advantage-estimate from equation 6 of teh assignment PDF
+        advantage = list()
+        for k in range(self.params['n_trajectory_per_rollout']):
+            for t in range(len(self.trajectory['reward'][k]) - 1):
+                r_kt = self.trajectory['reward'][k][t]
+                y_hat = self.critic_net(self.trajectory['obs'][k][t])
+                y_hat_next_state = self.critic_net( self.trajectory['obs'][k][t+1])
+                advantage.append( (r_kt + (gamma * y_hat_next_state)) - y_hat )
 
-        self.trajectory['advantage'] = ???
+        self.trajectory['advantage'] = advantage
+        #self.trajectory['advantage'] = ???
 
     def update_actor_net(self):
         actor_loss = self.estimate_actor_loss_function()
@@ -92,8 +100,17 @@ class ACTrainer:
     def estimate_critic_loss_function(self):
         # TODO: Compute critic loss function
         # HINT: Use definition of critic-loss from equation 7 of teh assignment PDF. It is the MSE between target-values and state-values.
-        critic_loss = ???
-        return critic_loss
+        #critic_loss = ???
+
+        # TODO: i guess this should be a tensor so you can do .backward()
+        critic_loss = 0
+        for k in range(self.params['n_trajectory_per_rollout']):
+            traj_loss = 0
+            num_steps = len(self.trajectory['target_value'][k])
+            for t in range(num_steps):
+                traj_loss = traj_loss + (self.trajectory['target_value'][k][t] - self.trajectory['state_value'][k][t]) ** 2
+            critic_loss = critic_loss + (traj_loss / num_steps)
+        return critic_loss / self.params['n_trajectory_per_rollout']
 
     def estimate_actor_loss_function(self):
         actor_loss = list()
