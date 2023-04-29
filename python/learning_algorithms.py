@@ -116,8 +116,15 @@ class ACTrainer:
         actor_loss = list()
         for t_idx in range(self.params['n_trajectory_per_rollout']):
             advantage = apply_discount(self.trajectory['advantage'][t_idx])
+            tsum = 0
+            for t in range(len(self.trajectory['advantage'][t_idx])):
+                tsum = tsum + (advantage[t] * self.trajectory['log_prob'][t_idx][t] )
+            actor_loss.append(-1 * tsum)
             # TODO: Compute actor loss function
-        actor_loss = ???
+        
+        #actor_loss = ???
+        actor_loss = torch.stack(actor_loss).mean()
+        print('Loss:', actor_loss)
         return actor_loss
 
     def generate_video(self, max_frame=1000):
@@ -137,13 +144,15 @@ class ActorNet(nn.Module):
         super(ActorNet, self).__init__()
         # TODO: Define the actor net
         # HINT: You can use nn.Sequential to set up a 2 layer feedforward neural network.
-        self.ff_net = ???
+        self.ff_net = nn.Sequential(nn.Linear(input_size, hidden_dim), nn.Linear(hidden_dim, output_size))
 
     def forward(self, obs):
         # TODO: Forward pass of actor net
         # HINT: (use Categorical from torch.distributions to draw samples and log-prob from model output)
-        action_index = ???
-        log_prob = ???
+        y_pred = self.ff_net(obs)
+        m = Categorical(logits=y_pred)
+        action_index = m.sample()
+        log_prob = m.log_prob(action_index)
         return action_index, log_prob
 
 
@@ -153,12 +162,13 @@ class CriticNet(nn.Module):
         super(CriticNet, self).__init__()
         # TODO: Define the critic net
         # HINT: You can use nn.Sequential to set up a 2 layer feedforward neural network.
-        self.ff_net = ???
+        self.ff_net = nn.Sequential(nn.Linear(input_size, hidden_dim), nn.Linear(hidden_dim, output_size))
 
     def forward(self, obs):
         # TODO: Forward pass of critic net
         # HINT: (get state value from the network using the current observation)
-        state_value = ???
+        #state_value = ???
+        state_value = self.ff_net(obs)
         return state_value
 
 
