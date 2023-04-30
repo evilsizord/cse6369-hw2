@@ -1,0 +1,8 @@
+# pythonc
+*.pyc
+
+# pickle dumps
+*.pkl
+
+# demo videos
+*.mp4

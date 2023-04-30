@@ -277,6 +277,7 @@ class DQNTrainer:
         else:
             max_a_idx, max_q = 0, 0
             for a in range(self.env.action_space.n):
+                # todo: how to specify the action here..? q(s,a)
                 qval = self.q_net(torch.tensor(obs))
                 if qval > max_q:
                     max_a_idx, max_q = a, qval
@@ -290,6 +291,22 @@ class DQNTrainer:
         # TODO: Update Q-net
         # HINT: You should draw a batch of random samples from the replay buffer
         # and train your Q-net with that sampled batch.
+        samples = [ self.replay_memory.sample() for _ in range(self.params['batch_size']) ]
+
+        #sample format: [obs, action, reward, next_obs, not_terminal]
+
+        predicted_state_value = list()
+        target_value = list()
+        for i in range(len(samples)):
+            if (samples[i].not_terminal):
+                # not terminal state
+                y_hat = self.q_net( samples[i].next_obs )
+                y_hat = samples[i].reward + self.params['gamma'] * np.max(y_hat)
+            else:
+                #terminal state
+                y_hat = samples[i].reward
+
+            #predicted_state_value.append( )
 
         #predicted_state_value = ???
         #target_value = ???
@@ -326,15 +343,20 @@ class ReplayMemory:
     # HINT: You can use python data structure deque to construct a replay buffer
     def __init__(self, capacity):
         #???
-        pass
+        self.proto = namedtuple('Sample', ['obs', 'action', 'reward', 'next_obs', 'not_terminal'])
+        self.buffer = deque(maxlen=capacity)
 
     def push(self, *args):
         #???
-        pass
+        #.push(obs, action, reward, next_obs, not (terminated or truncated))
+        self.buffer.append(self.proto(args))
 
     def sample(self, n_samples):
         #???
-        pass
+        samples = list()
+        for i in range(n_samples):
+            samples.append( self.buffer[ random.randint(0, len(self.buffer)) ] )
+        return samples
 
 
 class QNet(nn.Module):
