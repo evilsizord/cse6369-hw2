@@ -65,12 +65,16 @@ class ACTrainer:
         target_values = list()
         state_values = list()
         for k in range(self.params['n_trajectory_per_rollout']):
+            target_values_trj = list()
+            state_values_trj = list()
             for t in range(len(self.trajectory['reward'][k]) - 1):
                 r_kt = self.trajectory['reward'][k][t]
                 y_hat = self.critic_net(self.trajectory['obs'][k][t])
                 y_hat_next_state = self.critic_net( self.trajectory['obs'][k][t+1])
-                target_values.append( r_kt + (gamma * y_hat_next_state) )
-                state_values.append(y_hat)
+                target_values_trj.append( r_kt + (gamma * y_hat_next_state.item()) )
+                state_values_trj.append(y_hat.item())
+            target_values.append(target_values_trj)
+            state_values.append(state_values_trj)
 
         self.trajectory['target_value'] = target_values
         self.trajectory['state_value'] = state_values
@@ -82,11 +86,15 @@ class ACTrainer:
         # HINT: Use definition of advantage-estimate from equation 6 of teh assignment PDF
         advantage = list()
         for k in range(self.params['n_trajectory_per_rollout']):
+            trajectory_advantage = list()
             for t in range(len(self.trajectory['reward'][k]) - 1):
                 r_kt = self.trajectory['reward'][k][t]
                 y_hat = self.critic_net(self.trajectory['obs'][k][t])
+                #if k==0 and t == 0:
+                    #print('y_hat: ', y_hat)
                 y_hat_next_state = self.critic_net( self.trajectory['obs'][k][t+1])
-                advantage.append( (r_kt + (gamma * y_hat_next_state)) - y_hat )
+                trajectory_advantage.append( (r_kt + (gamma * y_hat_next_state.item())) - y_hat.item() )
+            advantage.append(trajectory_advantage)
 
         self.trajectory['advantage'] = advantage
         #self.trajectory['advantage'] = ???
@@ -101,11 +109,9 @@ class ACTrainer:
         # TODO: Compute critic loss function
         # HINT: Use definition of critic-loss from equation 7 of teh assignment PDF. It is the MSE between target-values and state-values.
         #critic_loss = ???
-
-        # TODO: i guess this should be a tensor so you can do .backward()
-        critic_loss = 0
+        critic_loss = torch.zeros(1, requires_grad=True)
         for k in range(self.params['n_trajectory_per_rollout']):
-            traj_loss = 0
+            traj_loss = torch.zeros(1)
             num_steps = len(self.trajectory['target_value'][k])
             for t in range(num_steps):
                 traj_loss = traj_loss + (self.trajectory['target_value'][k][t] - self.trajectory['state_value'][k][t]) ** 2
@@ -119,7 +125,7 @@ class ACTrainer:
             tsum = 0
             for t in range(len(self.trajectory['advantage'][t_idx])):
                 tsum = tsum + (advantage[t] * self.trajectory['log_prob'][t_idx][t] )
-            actor_loss.append(-1 * tsum)
+            actor_loss.append(tsum)
             # TODO: Compute actor loss function
         
         #actor_loss = ???
@@ -265,7 +271,17 @@ class DQNTrainer:
         # TODO: Implement the epsilon-greedy behavior
         # HINT: The agent will will choose action based on maximum Q-value with
         # '1-ε' probability, and a random action with 'ε' probability.
-        action = ???
+        if random.random() < self.epsilon:
+            # choose random action
+            action = random.randint(0, self.env.action_space.n)
+        else:
+            max_a_idx, max_q = 0, 0
+            for a in range(self.env.action_space.n):
+                qval = self.q_net(torch.tensor(obs))
+                if qval > max_q:
+                    max_a_idx, max_q = a, qval
+            action = max_a_idx
+        #action = ???
         return action
 
     def update_q_net(self):
@@ -275,8 +291,8 @@ class DQNTrainer:
         # HINT: You should draw a batch of random samples from the replay buffer
         # and train your Q-net with that sampled batch.
 
-        predicted_state_value = ???
-        target_value = ???
+        #predicted_state_value = ???
+        #target_value = ???
 
         criterion = nn.SmoothL1Loss()
         q_loss = criterion(predicted_state_value, target_value.unsqueeze(1))
@@ -309,13 +325,16 @@ class ReplayMemory:
     # TODO: Implement replay buffer
     # HINT: You can use python data structure deque to construct a replay buffer
     def __init__(self, capacity):
-        ???
+        #???
+        pass
 
     def push(self, *args):
-        ???
+        #???
+        pass
 
     def sample(self, n_samples):
-        ???
+        #???
+        pass
 
 
 class QNet(nn.Module):
