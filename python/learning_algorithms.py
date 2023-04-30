@@ -273,14 +273,13 @@ class DQNTrainer:
         # '1-ε' probability, and a random action with 'ε' probability.
         if random.random() < self.epsilon:
             # choose random action
-            action = random.randint(0, self.env.action_space.n)
+            action = random.randint(0, self.env.action_space.n-1)
         else:
+            y_hat = self.q_net(torch.tensor(obs))
             max_a_idx, max_q = 0, 0
             for a in range(self.env.action_space.n):
-                # todo: how to specify the action here..? q(s,a)
-                qval = self.q_net(torch.tensor(obs))
-                if qval > max_q:
-                    max_a_idx, max_q = a, qval
+                if y_hat[a] > max_q:
+                    max_a_idx, max_q = a, y_hat[a]
             action = max_a_idx
         #action = ???
         return action
@@ -291,25 +290,31 @@ class DQNTrainer:
         # TODO: Update Q-net
         # HINT: You should draw a batch of random samples from the replay buffer
         # and train your Q-net with that sampled batch.
-        samples = [ self.replay_memory.sample() for _ in range(self.params['batch_size']) ]
+        samples = self.replay_memory.sample(self.params['batch_size'])
 
-        #sample format: [obs, action, reward, next_obs, not_terminal]
+        #sample format: {obs, action, reward, next_obs, not_terminal}
 
         predicted_state_value = list()
         target_value = list()
         for i in range(len(samples)):
             if (samples[i].not_terminal):
                 # not terminal state
-                y_hat = self.q_net( samples[i].next_obs )
-                y_hat = samples[i].reward + self.params['gamma'] * np.max(y_hat)
+                y_hat = self.q_net( torch.tensor(samples[i].next_obs) )
+                y_hat = samples[i].reward + self.params['gamma'] * torch.max(y_hat)
             else:
                 #terminal state
                 y_hat = samples[i].reward
+            
+            y_hat2 = self.target_net( torch.tensor(samples[i].obs) )
+            y_hat2 = y_hat2[ samples[i].action ]
 
-            #predicted_state_value.append( )
+            predicted_state_value.append(y_hat)
+            target_value.append(y_hat2)
 
         #predicted_state_value = ???
         #target_value = ???
+        predicted_state_value = torch.tensor(predicted_state_value, requires_grad=True)
+        target_value = torch.tensor(target_value, requires_grad=True)
 
         criterion = nn.SmoothL1Loss()
         q_loss = criterion(predicted_state_value, target_value.unsqueeze(1))
@@ -349,13 +354,14 @@ class ReplayMemory:
     def push(self, *args):
         #???
         #.push(obs, action, reward, next_obs, not (terminated or truncated))
-        self.buffer.append(self.proto(args))
+        a = self.proto(*args)
+        self.buffer.append(a)
 
     def sample(self, n_samples):
         #???
         samples = list()
         for i in range(n_samples):
-            samples.append( self.buffer[ random.randint(0, len(self.buffer)) ] )
+            samples.append( self.buffer[ random.randint(0, len(self.buffer)-1 ) ] )
         return samples
 
 
