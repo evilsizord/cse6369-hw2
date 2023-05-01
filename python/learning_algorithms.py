@@ -299,13 +299,13 @@ class DQNTrainer:
         for i in range(len(samples)):
             if (samples[i].not_terminal):
                 # not terminal state
-                y_hat = self.q_net( torch.tensor(samples[i].next_obs) )
+                y_hat = self.target_net( torch.tensor(samples[i].next_obs) )
                 y_hat = samples[i].reward + self.params['gamma'] * torch.max(y_hat)
             else:
                 #terminal state
                 y_hat = samples[i].reward
             
-            y_hat2 = self.target_net( torch.tensor(samples[i].obs) )
+            y_hat2 = self.q_net( torch.tensor(samples[i].obs) )
             y_hat2 = y_hat2[ samples[i].action ]
 
             predicted_state_value.append(y_hat)
